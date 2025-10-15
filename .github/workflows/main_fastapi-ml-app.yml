@@ -32,7 +32,7 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
           pip install pytest semgrep pip-audit
 
-      # 4️⃣ Tests unitaires du modèle
+      # 4️⃣ Tests unitaires du code
       - name: Run unit tests
         run: |
           mkdir -p test-reports
@@ -61,10 +61,11 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      # 8️⃣ Build de l'image Docker
-      - name: Build Docker image
+      # 8️⃣ Build et push de l'image Docker avec tag latest
+      - name: Build and push Docker image
         run: |
-          docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       # 9️⃣ Scan de l'image Docker avec Trivy (vulnérabilités mineures tolérées)
       - name: Scan Docker image for vulnerabilities with Trivy
@@ -74,7 +75,7 @@ jobs:
             -v $PWD/test-reports:/test-reports \
             aquasec/trivy:latest image \
             --format json --output /test-reports/trivy_report.json \
-            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
         continue-on-error: true
 
       # 🔟 Upload des artefacts des tests et scans
@@ -84,11 +85,11 @@ jobs:
           name: security-test-reports
           path: test-reports/
 
-      # 1️1️ Déploiement sur Azure Web App uniquement si tout réussit
+      # 1️⃣1️⃣ Déploiement sur Azure Web App uniquement si tout réussit
       - name: Deploy to Azure Web App
         if: success()
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          images: ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          images: ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
