@@ -3,23 +3,23 @@ name: Build and deploy container to Azure Web App
 on:
   push:
     branches:
-      - main
+      - main   # Déclenche le déploiement à chaque push sur main
 
 env:
-  AZURE_WEBAPP_NAME: fastapi-ml-app   # 🔹 Remplace par le nom exact de ta Web App
-  AZURE_CONTAINER_REGISTRY: filipeacr.azurecr.io
-  IMAGE_NAME: ml-api
+  AZURE_WEBAPP_NAME: fastapi-ml-app           # Nom de ta Web App
+  AZURE_CONTAINER_REGISTRY: filipeacr.azurecr.io  # Ton ACR
+  IMAGE_NAME: ml-api                          # Nom de ton image Docker
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 🧩 1. Récupère le code du repo
-      - name: Checkout code
+      # 1️⃣ Récupérer le code du repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 🧩 2. Connexion à Azure Container Registry
+      # 2️⃣ Connexion à Azure Container Registry
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
@@ -27,13 +27,13 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      # 🧩 3. Build + Push l’image Docker
+      # 3️⃣ Build et push de l'image Docker
       - name: Build and push Docker image
         run: |
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # 🧩 4. Déploiement sur Azure Web App
+      # 4️⃣ Déploiement sur Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
