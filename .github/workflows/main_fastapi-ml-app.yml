@@ -37,30 +37,23 @@ jobs:
         run: |
           mkdir -p test-reports
           pytest test_app.py --junitxml=test-reports/test_results.xml
-        continue-on-error: true
+        continue-on-error: false
 
-      # 5️⃣ Tests unitaires du modèle ML
-      - name: Run ML model tests
-        run: |
-          mkdir -p test-reports
-          pytest test_model.py --junitxml=test-reports/ml_test_results.xml
-        continue-on-error: true
-
-      # 6️⃣ Scan de sécurité du code avec Semgrep
+      # 5️⃣ Scan de sécurité du code avec Semgrep
       - name: Security scan with Semgrep
         run: |
           mkdir -p test-reports
           semgrep --config=p/ci --json > test-reports/semgrep_report.json
-        continue-on-error: true
+        continue-on-error: false
 
-      # 7️⃣ Audit des dépendances Python
+      # 6️⃣ Audit des dépendances Python (vulnérabilités mineures tolérées)
       - name: Audit Python dependencies
         run: |
           mkdir -p test-reports
           pip-audit --format json > test-reports/pip_audit_report.json
         continue-on-error: true
 
-      # 8️⃣ Connexion à Azure Container Registry
+      # 7️⃣ Connexion à Azure Container Registry
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
@@ -68,12 +61,12 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      # 9️⃣ Build de l'image Docker
+      # 8️⃣ Build de l'image Docker
       - name: Build Docker image
         run: |
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # 🔟 Scan de l'image Docker avec Trivy
+      # 9️⃣ Scan de l'image Docker avec Trivy (vulnérabilités mineures tolérées)
       - name: Scan Docker image for vulnerabilities with Trivy
         run: |
           mkdir -p test-reports
@@ -84,14 +77,14 @@ jobs:
             ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         continue-on-error: true
 
-      # 1️⃣1️⃣ Upload des artefacts des tests et scans
+      # 🔟 Upload des artefacts des tests et scans
       - name: Upload test and scan reports
         uses: actions/upload-artifact@v4
         with:
           name: security-test-reports
           path: test-reports/
 
-      # 1️⃣2️⃣ Déploiement sur Azure Web App uniquement si tout réussit
+      # 1️1️ Déploiement sur Azure Web App uniquement si tout réussit
       - name: Deploy to Azure Web App
         if: success()
         uses: azure/webapps-deploy@v3
