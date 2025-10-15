@@ -36,7 +36,6 @@ jobs:
       - name: Run unit tests
         run: |
           mkdir -p test-reports
-          cd $GITHUB_WORKSPACE
           pytest test_app.py --junitxml=test-reports/test_results.xml
         continue-on-error: true
 
@@ -44,7 +43,6 @@ jobs:
       - name: Run ML model tests
         run: |
           mkdir -p test-reports
-          cd $GITHUB_WORKSPACE
           pytest test_model.py --junitxml=test-reports/ml_test_results.xml
         continue-on-error: true
 
@@ -52,7 +50,6 @@ jobs:
       - name: Security scan with Semgrep
         run: |
           mkdir -p test-reports
-          cd $GITHUB_WORKSPACE
           semgrep --config=p/ci --json > test-reports/semgrep_report.json
         continue-on-error: true
 
@@ -60,7 +57,6 @@ jobs:
       - name: Audit Python dependencies
         run: |
           mkdir -p test-reports
-          cd $GITHUB_WORKSPACE
           pip-audit --format json > test-reports/pip_audit_report.json
         continue-on-error: true
 
@@ -75,7 +71,6 @@ jobs:
       # 9️⃣ Build de l'image Docker
       - name: Build Docker image
         run: |
-          cd $GITHUB_WORKSPACE
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       # 🔟 Scan de l'image Docker avec Trivy
