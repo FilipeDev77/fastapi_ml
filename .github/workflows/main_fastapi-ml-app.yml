@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: '3.9'
 
-      # Installer dépendances, outils de test et audit
+      # Installer dépendances et outils de test/audit
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -73,13 +73,13 @@ jobs:
         run: |
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # Scan de l'image Docker avec Trivy
-      - name: Scan Docker image for vulnerabilities
-        uses: aquasec/trivy-action@v1
-        with:
-          image-ref: ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          format: json
-          output: test-reports/trivy_report.json
+      # Scan de l'image Docker avec Trivy via docker run
+      - name: Scan Docker image for vulnerabilities with Trivy
+        run: |
+          mkdir -p test-reports
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image --format json --output test-reports/trivy_report.json \
+            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         continue-on-error: true
 
       # Upload des artefacts des tests et scans
