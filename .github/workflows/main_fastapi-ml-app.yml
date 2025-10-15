@@ -1,25 +1,42 @@
-name: Build and deploy container to Azure Web App
+name: Build, test and deploy container to Azure Web App
 
 on:
   push:
     branches:
-      - main   # Déclenche le déploiement à chaque push sur main
+      - main   # Déclenche le workflow à chaque push sur main
 
 env:
-  AZURE_WEBAPP_NAME: fastapi-ml-app           # Nom de ta Web App
-  AZURE_CONTAINER_REGISTRY: filipeacr.azurecr.io  # Ton ACR
-  IMAGE_NAME: ml-api                          # Nom de ton image Docker
+  AZURE_WEBAPP_NAME: fastapi-ml-app
+  AZURE_CONTAINER_REGISTRY: filipeacr.azurecr.io
+  IMAGE_NAME: ml-api
 
 jobs:
-  build-and-deploy:
+  build-test-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Récupérer le code du repo
+      # 1️ Récupérer le code du repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Connexion à Azure Container Registry
+      # 2️ Installer Python et les dépendances pour les tests
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+          pip install pytest
+
+      # 3️ Exécuter les tests unitaires
+      - name: Run unit tests
+        run: |
+          pytest test_app.py
+
+      # 4️ Connexion à Azure Container Registry
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
@@ -27,13 +44,13 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      # 3️⃣ Build et push de l'image Docker
+      # 5️ Build et push de l'image Docker
       - name: Build and push Docker image
         run: |
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # 4️⃣ Déploiement sur Azure Web App
+      # 6️ Déploiement sur Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
