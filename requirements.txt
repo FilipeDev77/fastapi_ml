@@ -9,4 +9,4 @@ python-multipart
 pytest
 httpx
 azureml-core
-azure-storage-blob
+
